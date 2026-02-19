@@ -1,7 +1,7 @@
 package com.capstone.auth;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.capstone.user.Role;
+import com.capstone.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

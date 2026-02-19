@@ -1,4 +1,4 @@
-package com.capstone.user;
+package com.capstone.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 

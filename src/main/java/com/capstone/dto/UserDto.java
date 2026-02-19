@@ -1,6 +1,6 @@
 package com.capstone.dto;
 
-import com.capstone.user.Role;
+import com.capstone.enums.Role;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

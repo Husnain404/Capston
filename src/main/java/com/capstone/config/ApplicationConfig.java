@@ -1,6 +1,6 @@
 package com.capstone.config;
 
-import com.capstone.user.UserRepository;
+import com.capstone.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

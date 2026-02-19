@@ -1,6 +1,6 @@
 package com.capstone.token;
 
-import com.capstone.user.User;
+import com.capstone.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

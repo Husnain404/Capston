@@ -1,4 +1,4 @@
-package com.capstone.user;
+package com.capstone.enums;
 
 public enum Role {
     Admin,

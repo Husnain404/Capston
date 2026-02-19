@@ -1,6 +1,7 @@
 package com.capstone.auth;
 
 
+import com.capstone.exception.UserAlreadyExistsException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,11 @@ public class AuthenticationController {
             @RequestBody RegisterRequest request
     )
     {
-        return ResponseEntity.ok(service.register(request));
+        try {
+            return ResponseEntity.ok(service.register(request));
+        } catch (UserAlreadyExistsException e) {
+            throw new UserAlreadyExistsException(e.getMessage());
+        }
     }
 
     @PostMapping("/authenticate")

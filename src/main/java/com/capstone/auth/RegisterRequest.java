@@ -1,6 +1,6 @@
 package com.capstone.auth;
 
-import com.capstone.user.Role;
+import com.capstone.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
