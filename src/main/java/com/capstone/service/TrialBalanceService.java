@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,10 +31,6 @@ import java.util.List;
 public class TrialBalanceService {
 
     private final TrialBalanceRepository repository;
-
-    private final String FAIL = "E:/CapstoneFiles/fail";
-    private final String SUCCESS = "E:/CapstoneFiles/success";
-
 
     private static final String PREFIX = "TRIAL_BALANCE_";
 
@@ -73,7 +70,9 @@ public class TrialBalanceService {
 
 
     public void accountingTotalValidate(MultipartFile file) throws IOException {
-        TrialBalance trialBalance = convertToObj(file);
+        InputStream inputStream = file.getInputStream();
+        String fileName = file.getOriginalFilename();
+        TrialBalance trialBalance = convertToObj(inputStream,fileName);
         boolean isValid = true;
         String errorMassage = null;
         try {
@@ -103,18 +102,20 @@ public class TrialBalanceService {
     public String saveFile(TrialBalance trialBalance) {
 
         TrialBalance id = repository.findByFileName(trialBalance.getFileName());
-        repository.findById(id.getId()).ifPresent(repository::delete);
+        if(id !=null)
+        {
+            repository.findById(id.getId()).ifPresent(repository::delete);
+        }
         repository.save(trialBalance);
         return trialBalance.getFileName();
     }
 
-    public TrialBalance convertToObj(MultipartFile file) throws IOException {
+    public TrialBalance convertToObj(InputStream file, String fileName) throws IOException {
         TrialBalance trialBalance = new TrialBalance();
         List<TrialBalanceEntry> entries = new ArrayList<>();
 
-        try (Workbook workbook = WorkbookFactory.create(file.getInputStream())) {
+        try (Workbook workbook = WorkbookFactory.create(file)) {
             Sheet sheet = workbook.getSheetAt(0);
-            String fileName = file.getOriginalFilename();
             trialBalance.setFileName(fileName);
             sheet.forEach(row1 -> {
                 TrialBalanceEntry entry = new TrialBalanceEntry();
@@ -135,15 +136,11 @@ public class TrialBalanceService {
     public void handelFile(MultipartFile file, boolean isValid) throws IOException {
 
         Path tempPath = Paths.get("E:/CapstoneFiles/temp/" + file.getOriginalFilename());
-        Files.createDirectories(tempPath.getParent());
-        Files.write(tempPath, file.getBytes());
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         Path destination;
 
-//        if(isValid){
-//            destination = Paths.get("E:/CapstoneFiles/validName/" +file.getOriginalFilename());
-//        }
+
         if (!isValid) {
             destination = Paths.get("E:/CapstoneFiles/fail/" + timestamp + "  " + file.getOriginalFilename());
 
