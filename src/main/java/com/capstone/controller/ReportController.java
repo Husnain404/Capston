@@ -1,11 +1,17 @@
 package com.capstone.controller;
 
+import com.capstone.dto.FinancialReportDto;
 import com.capstone.exception.FileNameInvalidException;
 import com.capstone.exception.TrialBalanceNotValidException;
+import com.capstone.model.FinancialReport;
 import com.capstone.model.TrialBalance;
 import com.capstone.response.ApiResponse;
+import com.capstone.service.FinancialReportService;
 import com.capstone.service.TrialBalanceService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -14,13 +20,12 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -38,6 +43,7 @@ import java.util.List;
 public class ReportController {
 
     private final TrialBalanceService service;
+    private final FinancialReportService financialReportService;
     private final JobLauncher jobLauncher;
     private final Job job;
 
@@ -76,38 +82,76 @@ public class ReportController {
     }
 
 
-    @PostMapping(value = "/upload", consumes =  MediaType.MULTIPART_FORM_DATA_VALUE)
-     public ResponseEntity<ApiResponse> saveExileFile(@RequestParam("file") MultipartFile file)
+
+    @GetMapping("/financial-report/export/{year}")
+    public ResponseEntity<byte[]> exportFinancialReportEcel(@PathVariable String year)
     {
-        try {
-            InputStream inputStream = file.getInputStream();
-            String fileName = file.getOriginalFilename();
-            TrialBalance trialBalance = service.convertToObj(inputStream,fileName);
-            service.saveFile(trialBalance);
-            return ResponseEntity.ok().body(new ApiResponse("Added successfully",fileName));
+        List<FinancialReportDto> list = financialReportService.getDataForExcelFile(year);
+
+        SXSSFWorkbook workbook = (SXSSFWorkbook) financialReportService.generateFinancialReport(list);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            workbook.write(outputStream);
+            byte[] fileContent = outputStream.toByteArray();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(
+                    ContentDisposition.attachment().filename("Financial-Report_"+year+".xlsx").build());
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(fileContent);
+
         } catch (IOException e) {
-            return ResponseEntity.status(500).body(new ApiResponse("Failed to process file: " + e.getMessage(), null));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            workbook.dispose(); // Clean up temp files created by SXSSFWorkbook
         }
     }
 
-    @PostMapping("/check-name")
-    public ResponseEntity<ApiResponse> validateName(@RequestParam("file") MultipartFile file){
-        try{
-            service.fileNameFileValidate(file);
-            return ResponseEntity.ok().body(new ApiResponse("File Name Is valid ",file.getOriginalFilename()));
-        } catch (IOException | DateTimeParseException | FileNameInvalidException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse(e.getMessage()+" File moved to: E:/CapstoneFiles/fail",null));
-        }
-    }
 
-    @PostMapping("/check-total")
-    public ResponseEntity<ApiResponse> validateTotal(@RequestParam("file") MultipartFile file){
-        try{
-            service.accountingTotalValidate(file);
-            return ResponseEntity.ok().body(new ApiResponse("File Total Is valid ",file.getOriginalFilename()));
-        } catch (IOException | TrialBalanceNotValidException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse(e.getMessage()+" File moved to: E:/CapstoneFiles/fail",null));
-        }
-    }
+//    @PostMapping(value = "/upload", consumes =  MediaType.MULTIPART_FORM_DATA_VALUE)
+//    public ResponseEntity<ApiResponse> saveExileFile(@RequestParam("file") MultipartFile file)
+//    {
+//        try {
+//            InputStream inputStream = file.getInputStream();
+//            String fileName = file.getOriginalFilename();
+//            TrialBalance trialBalance = service.convertToObj(inputStream,fileName);
+//            service.saveFile(trialBalance);
+//            return ResponseEntity.ok().body(new ApiResponse("Added successfully",fileName));
+//        } catch (IOException e) {
+//            return ResponseEntity.status(500).body(new ApiResponse("Failed to process file: " + e.getMessage(), null));
+//        }
+//    }
+//
+//    @PostMapping("/check-name")
+//    public ResponseEntity<ApiResponse> validateName(@RequestParam("file") MultipartFile file){
+//        try{
+//            service.fileNameFileValidate(file);
+//            return ResponseEntity.ok().body(new ApiResponse("File Name Is valid ",file.getOriginalFilename()));
+//        } catch (IOException | DateTimeParseException | FileNameInvalidException e) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse(e.getMessage()+" File moved to: E:/CapstoneFiles/fail",null));
+//        }
+//    }
+//
+//    @PostMapping("/check-total")
+//    public ResponseEntity<ApiResponse> validateTotal(@RequestParam("file") MultipartFile file){
+//        try{
+//            service.accountingTotalValidate(file);
+//            return ResponseEntity.ok().body(new ApiResponse("File Total Is valid ",file.getOriginalFilename()));
+//        } catch (IOException | TrialBalanceNotValidException e) {
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse(e.getMessage()+" File moved to: E:/CapstoneFiles/fail",null));
+//        }
+//    }
+//
+//
+//    @GetMapping("/get/{year}")
+//    public ResponseEntity<ApiResponse> find(@PathVariable String year)
+//    {
+//        List<FinancialReportDto> list = financialReportService.getDataForExcelFile(year);
+//        return ResponseEntity.ok().body(new ApiResponse("found",list));
+//    }
 
 }

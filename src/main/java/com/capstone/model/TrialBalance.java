@@ -35,5 +35,6 @@ public class TrialBalance {
     @OneToMany(mappedBy = "trialBalance", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TrialBalanceEntry> trailBalanceEntries;
 
-
+    @OneToOne(mappedBy = "trialBalance", cascade = CascadeType.ALL, orphanRemoval = true)
+    private FinancialReport financialReport;
 }

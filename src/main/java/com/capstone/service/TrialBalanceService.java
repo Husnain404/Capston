@@ -2,6 +2,7 @@ package com.capstone.service;
 
 import com.capstone.exception.FileNameInvalidException;
 import com.capstone.exception.TrialBalanceNotValidException;
+import com.capstone.model.FinancialReport;
 import com.capstone.model.TrialBalance;
 import com.capstone.model.TrialBalanceEntry;
 import com.capstone.repository.TrialBalanceRepository;
@@ -72,7 +73,7 @@ public class TrialBalanceService {
     public void accountingTotalValidate(MultipartFile file) throws IOException {
         InputStream inputStream = file.getInputStream();
         String fileName = file.getOriginalFilename();
-        TrialBalance trialBalance = convertToObj(inputStream,fileName);
+        TrialBalance trialBalance = convertToObj(inputStream, fileName);
         boolean isValid = true;
         String errorMassage = null;
         try {
@@ -102,11 +103,11 @@ public class TrialBalanceService {
     public String saveFile(TrialBalance trialBalance) {
 
         TrialBalance id = repository.findByFileName(trialBalance.getFileName());
-        if(id !=null)
-        {
+        if (id != null) {
             repository.findById(id.getId()).ifPresent(repository::delete);
         }
-        repository.save(trialBalance);
+        TrialBalance trialBalance1 = saveFinancialReport(trialBalance);
+        repository.save(trialBalance1);
         return trialBalance.getFileName();
     }
 
@@ -148,6 +149,41 @@ public class TrialBalanceService {
             Files.move(tempPath, destination, StandardCopyOption.REPLACE_EXISTING);
             System.out.println("File moved to: " + destination);
         }
+    }
+
+
+    public TrialBalance saveFinancialReport(TrialBalance trialBalance) {
+        List<TrialBalanceEntry> entries = trialBalance.getTrailBalanceEntries();
+        FinancialReport financialReport = new FinancialReport();
+        Double assets = 0.0;
+        Double liabilities = 0.0;
+        Double equity = 0.0;
+        Double revenue = 0.0;
+        Double expenses = 0.0;
+        for (int i = 0; i < entries.size(); i++) {
+            if (entries.get(i).getCode().startsWith("1")) {
+                assets += entries.get(i).getDebit() - entries.get(i).getCredit();
+            } else if (entries.get(i).getCode().startsWith("2")) {
+                liabilities += entries.get(i).getCredit()-entries.get(i).getDebit();
+            } else if (entries.get(i).getCode().startsWith("3")) {
+                equity += entries.get(i).getCredit()-entries.get(i).getDebit();
+            } else if (entries.get(i).getCode().startsWith("4")) {
+                revenue += entries.get(i).getCredit()-entries.get(i).getDebit();
+            } else if (entries.get(i).getCode().startsWith("5")) {
+                expenses += entries.get(i).getDebit() - entries.get(i).getCredit();
+            }
+        }
+        financialReport.setAssets(assets);
+        financialReport.setLiabilities(liabilities);
+        financialReport.setEquity(equity);
+        financialReport.setRevenue(revenue);
+        financialReport.setExpenses(expenses);
+
+        trialBalance.setFinancialReport(financialReport);
+        financialReport.setTrialBalance(trialBalance);
+
+        return trialBalance;
+
     }
 
 }

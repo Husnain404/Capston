@@ -10,6 +10,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Component
 @RequiredArgsConstructor
@@ -23,12 +25,14 @@ public class TrialBalanceJobListener implements JobExecutionListener {
         if (filePath == null) return;
 
         Path source = Paths.get(filePath);
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
 
         try {
 
             if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
 
-                Path success = Paths.get("E:/CapstoneFiles/success/" + source.getFileName());
+
+                Path success = Paths.get("E:/CapstoneFiles/success/"+timestamp +" "+ source.getFileName());
                 Files.createDirectories(success.getParent());
                 Files.move(source, success, StandardCopyOption.REPLACE_EXISTING);
 
@@ -36,7 +40,7 @@ public class TrialBalanceJobListener implements JobExecutionListener {
 
             } else {
 
-                Path failed = Paths.get("E:/CapstoneFiles/failed/" + source.getFileName());
+                Path failed = Paths.get("E:/CapstoneFiles/fail/" +timestamp +" "+ source.getFileName());
                 Files.createDirectories(failed.getParent());
                 Files.move(source, failed, StandardCopyOption.REPLACE_EXISTING);
 
